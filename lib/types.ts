@@ -1,3 +1,5 @@
+// ── Legacy types (retained for existing viewer/dialog components) ─────────────
+
 export type AssetType = 'slide' | 'factsheet' | 'tutorial' | 'video' | 'image' | 'pdf'
 
 export interface Asset {
@@ -42,17 +44,6 @@ export interface AnalyticsEvent {
   created_at: string
 }
 
-export interface AnalyticsSummary {
-  id: string
-  share_link_id: string
-  date: string
-  total_views: number
-  unique_visitors: number
-  avg_time_spent_seconds: number
-  avg_scroll_depth: number
-  downloads: number
-}
-
 export interface AssetWithLinks extends Asset {
   share_links: ShareLink[]
 }
@@ -61,12 +52,54 @@ export interface ShareLinkWithAsset extends ShareLink {
   assets: Asset
 }
 
-export interface AnalyticsOverview {
-  totalViews: number
-  uniqueVisitors: number
-  avgTimeSpent: number
-  avgScrollDepth: number
-  totalDownloads: number
-  viewsChange: number
-  visitorsChange: number
+// ── CRM types ─────────────────────────────────────────────────────────────────
+
+export type ContactStatus = 'lead' | 'prospect' | 'customer' | 'churned'
+
+export type DealStage =
+  | 'prospecting'
+  | 'qualified'
+  | 'proposal'
+  | 'negotiation'
+  | 'closed_won'
+  | 'closed_lost'
+
+export interface Contact {
+  id: string
+  user_id: string
+  name: string
+  email: string
+  phone: string | null
+  company: string | null
+  status: ContactStatus
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Deal {
+  id: string
+  user_id: string
+  contact_id: string | null
+  contact_name: string | null
+  title: string
+  value: number
+  stage: DealStage
+  probability: number
+  expected_close: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Activity {
+  id: string
+  user_id: string
+  contact_id: string | null
+  deal_id: string | null
+  type: 'call' | 'email' | 'meeting' | 'note'
+  subject: string
+  body: string | null
+  occurred_at: string
+  created_at: string
 }

@@ -1,85 +1,108 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FolderOpen, Link2, Eye, Clock } from 'lucide-react'
+import { Users, Briefcase, TrendingUp, Target } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import type { Contact, Deal } from '@/lib/types'
+
+const stageBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  prospecting: 'secondary',
+  qualified: 'outline',
+  proposal: 'default',
+  negotiation: 'default',
+  closed_won: 'default',
+  closed_lost: 'destructive',
+}
+
+const stageLabel: Record<string, string> = {
+  prospecting: 'Prospecting',
+  qualified: 'Qualified',
+  proposal: 'Proposal',
+  negotiation: 'Negotiation',
+  closed_won: 'Won',
+  closed_lost: 'Lost',
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch counts
-  const { count: assetCount } = await supabase
-    .from('assets')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user?.id)
+  const [
+    { count: contactCount },
+    { count: dealCount },
+    { data: deals },
+    { data: recentContacts },
+  ] = await Promise.all([
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', user?.id),
+    supabase.from('deals').select('*', { count: 'exact', head: true }).eq('user_id', user?.id),
+    supabase.from('deals').select('*').eq('user_id', user?.id),
+    supabase
+      .from('contacts')
+      .select('*')
+      .eq('user_id', user?.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ])
 
-  const { count: linkCount } = await supabase
-    .from('share_links')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user?.id)
+  const openDeals = (deals as Deal[] | null)?.filter(
+    (d) => d.stage !== 'closed_won' && d.stage !== 'closed_lost'
+  ) ?? []
 
-  // Get total views from analytics
-  const { data: analytics } = await supabase
-    .from('analytics_events')
-    .select('id, share_links!inner(user_id)')
-    .eq('share_links.user_id', user?.id)
-    .eq('event_type', 'view')
+  const wonDeals = (deals as Deal[] | null)?.filter((d) => d.stage === 'closed_won') ?? []
+  const totalRevenue = wonDeals.reduce((sum, d) => sum + (d.value || 0), 0)
+  const pipelineValue = openDeals.reduce((sum, d) => sum + (d.value || 0), 0)
 
-  const totalViews = analytics?.length || 0
-
-  // Get recent assets
-  const { data: recentAssets } = await supabase
-    .from('assets')
-    .select('*')
-    .eq('user_id', user?.id)
-    .order('created_at', { ascending: false })
-    .limit(5)
+  const totalDeals = (deals?.length ?? 0)
+  const winRate =
+    totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0
 
   const stats = [
     {
-      title: 'Total Assets',
-      value: assetCount || 0,
-      icon: FolderOpen,
-      description: 'Marketing collaterals',
+      title: 'Total Contacts',
+      value: contactCount ?? 0,
+      icon: Users,
+      description: 'Leads, prospects & customers',
     },
     {
-      title: 'Active Links',
-      value: linkCount || 0,
-      icon: Link2,
-      description: 'Shareable URLs',
+      title: 'Open Deals',
+      value: openDeals.length,
+      icon: Briefcase,
+      description: 'Active pipeline',
     },
     {
-      title: 'Total Views',
-      value: totalViews,
-      icon: Eye,
-      description: 'All time views',
+      title: 'Pipeline Value',
+      value: `$${pipelineValue.toLocaleString()}`,
+      icon: TrendingUp,
+      description: 'Total open deal value',
     },
     {
-      title: 'Avg. Time Spent',
-      value: '0s',
-      icon: Clock,
-      description: 'Per session',
+      title: 'Win Rate',
+      value: `${winRate}%`,
+      icon: Target,
+      description: 'Closed won vs total closed',
     },
   ]
+
+  const recentDeals = (deals as Deal[] | null)
+    ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5) ?? []
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Welcome back
-          </h1>
-          <p className="text-muted-foreground">
-            Here&apos;s an overview of your marketing collaterals
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Overview</h1>
+          <p className="text-muted-foreground">Your sales pipeline at a glance</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/assets">
-            <FolderOpen className="mr-2 h-4 w-4" />
-            Manage Assets
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/contacts">Add Contact</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/deals">New Deal</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -102,42 +125,40 @@ export default async function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Assets</CardTitle>
-            <CardDescription>Your latest uploaded collaterals</CardDescription>
+            <CardTitle>Recent Deals</CardTitle>
+            <CardDescription>Latest deals in your pipeline</CardDescription>
           </CardHeader>
           <CardContent>
-            {recentAssets && recentAssets.length > 0 ? (
-              <div className="space-y-4">
-                {recentAssets.map((asset) => (
+            {recentDeals.length > 0 ? (
+              <div className="space-y-3">
+                {recentDeals.map((deal) => (
                   <div
-                    key={asset.id}
+                    key={deal.id}
                     className="flex items-center justify-between rounded-lg border border-border p-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-                        <FolderOpen className="h-5 w-5 text-accent-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-card-foreground">{asset.title}</p>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {asset.type}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="font-medium text-card-foreground">{deal.title}</p>
+                      <p className="text-sm text-muted-foreground">{deal.contact_name ?? '—'}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(asset.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium">
+                        ${deal.value.toLocaleString()}
+                      </span>
+                      <Badge variant={stageBadgeVariant[deal.stage] ?? 'secondary'}>
+                        {stageLabel[deal.stage] ?? deal.stage}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <FolderOpen className="h-12 w-12 text-muted-foreground/50" />
+                <Briefcase className="h-12 w-12 text-muted-foreground/50" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                  No assets yet. Upload your first collateral to get started.
+                  No deals yet. Create your first deal to get started.
                 </p>
                 <Button className="mt-4" asChild>
-                  <Link href="/dashboard/assets">Upload Asset</Link>
+                  <Link href="/dashboard/deals">Create Deal</Link>
                 </Button>
               </div>
             )}
@@ -146,28 +167,43 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
+            <CardTitle>Recent Contacts</CardTitle>
+            <CardDescription>Newly added contacts</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/dashboard/assets">
-                <FolderOpen className="mr-2 h-4 w-4" />
-                Upload New Asset
-              </Link>
-            </Button>
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/dashboard/links">
-                <Link2 className="mr-2 h-4 w-4" />
-                View Share Links
-              </Link>
-            </Button>
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/dashboard/analytics">
-                <Eye className="mr-2 h-4 w-4" />
-                View Analytics
-              </Link>
-            </Button>
+          <CardContent>
+            {recentContacts && recentContacts.length > 0 ? (
+              <div className="space-y-3">
+                {(recentContacts as Contact[]).map((contact) => (
+                  <div
+                    key={contact.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                        {contact.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-card-foreground">{contact.name}</p>
+                        <p className="text-sm text-muted-foreground">{contact.company ?? contact.email}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="capitalize">
+                      {contact.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Users className="h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4 text-sm text-muted-foreground">
+                  No contacts yet. Add your first contact.
+                </p>
+                <Button className="mt-4" asChild>
+                  <Link href="/dashboard/contacts">Add Contact</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
