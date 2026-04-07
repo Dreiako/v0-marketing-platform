@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
-  Users,
-  Briefcase,
+  FolderOpen,
+  Link2,
   BarChart3,
   Settings,
 } from 'lucide-react'
@@ -18,14 +18,14 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    title: 'Contacts',
-    href: '/dashboard/contacts',
-    icon: Users,
+    title: 'Assets',
+    href: '/dashboard/assets',
+    icon: FolderOpen,
   },
   {
-    title: 'Deals',
-    href: '/dashboard/deals',
-    icon: Briefcase,
+    title: 'Share Links',
+    href: '/dashboard/links',
+    icon: Link2,
   },
   {
     title: 'Analytics',
@@ -46,9 +46,9 @@ export function DashboardSidebar() {
     <aside className="flex w-64 flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <Briefcase className="h-4 w-4 text-primary-foreground" />
+          <FolderOpen className="h-4 w-4 text-primary-foreground" />
         </div>
-        <span className="text-lg font-semibold">SalesCRM</span>
+        <span className="text-lg font-semibold">CollateralHub</span>
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
@@ -73,7 +73,7 @@ export function DashboardSidebar() {
         })}
       </nav>
       <div className="border-t border-sidebar-border p-4">
-        <p className="text-xs text-sidebar-foreground/50">SalesCRM v1.0</p>
+        <p className="text-xs text-sidebar-foreground/50">CollateralHub v1.0</p>
       </div>
     </aside>
   )
