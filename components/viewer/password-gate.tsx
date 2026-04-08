@@ -18,7 +18,7 @@ interface PasswordGateProps {
 
 export function PasswordGate({ shareLink }: PasswordGateProps) {
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [unlockedData, setUnlockedData] = useState<{
     signedUrl: string
@@ -28,7 +28,7 @@ export function PasswordGate({ shareLink }: PasswordGateProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(false)
+    setErrorMsg(null)
     setLoading(true)
 
     try {
@@ -38,15 +38,16 @@ export function PasswordGate({ shareLink }: PasswordGateProps) {
         body: JSON.stringify({ password }),
       })
 
+      const data = await res.json()
+
       if (!res.ok) {
-        setError(true)
+        setErrorMsg(res.status === 401 ? 'Incorrect password' : (data.error ?? 'Something went wrong'))
         return
       }
 
-      const data = await res.json()
       setUnlockedData(data)
     } catch {
-      setError(true)
+      setErrorMsg('Network error. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -85,11 +86,11 @@ export function PasswordGate({ shareLink }: PasswordGateProps) {
                   setPassword(e.target.value)
                   setError(false)
                 }}
-                className={error ? 'border-destructive' : ''}
+                className={errorMsg ? 'border-destructive' : ''}
                 disabled={loading}
               />
-              {error && (
-                <p className="text-sm text-destructive">Incorrect password</p>
+              {errorMsg && (
+                <p className="text-sm text-destructive">{errorMsg}</p>
               )}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>

@@ -10,18 +10,23 @@ export async function POST(
 
   const supabase = await createClient()
 
-  const { data: shareLink } = await supabase
+  const { data: shareLink, error: dbError } = await supabase
     .from('share_links')
     .select('*, assets(*)')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
 
-  if (!shareLink) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (dbError || !shareLink) {
+    // RLS may be blocking unauthenticated reads — instruct user to add a public SELECT policy
+    return NextResponse.json(
+      { error: 'Link not found. If you have RLS enabled, add a public SELECT policy for share_links.' },
+      { status: 404 }
+    )
   }
 
-  if (password !== shareLink.password_hash) {
+  // Trim both sides to handle any accidental whitespace
+  if (password.trim() !== (shareLink.password_hash ?? '').trim()) {
     return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
   }
 
@@ -30,7 +35,7 @@ export async function POST(
     .createSignedUrl(shareLink.assets.file_path, 3600)
 
   if (!signedUrlData?.signedUrl) {
-    return NextResponse.json({ error: 'Asset not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Asset could not be loaded' }, { status: 404 })
   }
 
   return NextResponse.json({
