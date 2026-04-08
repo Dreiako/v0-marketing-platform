@@ -1,5 +1,20 @@
 export type AssetType = 'slide' | 'factsheet' | 'tutorial' | 'video' | 'image' | 'pdf'
-export type AssetCategory = 'deck' | 'video' | 'image' | 'document' | 'factsheet'
+export type AssetCategory = string // now dynamic — stored in asset_categories table
+
+export interface Folder {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+}
+
+export interface UserCategory {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  created_at: string
+}
 
 export interface Asset {
   id: string
@@ -8,6 +23,7 @@ export interface Asset {
   description: string | null
   type: AssetType
   category: AssetCategory | null
+  folder_id: string | null
   file_path: string
   file_size: number | null
   mime_type: string | null

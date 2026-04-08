@@ -1,16 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
-import { AssetGrid } from '@/components/dashboard/asset-grid'
 import { UploadDialog } from '@/components/dashboard/upload-dialog'
+import { AssetsPageClient } from '@/components/dashboard/assets-page-client'
 
 export default async function AssetsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: assets } = await supabase
-    .from('assets')
-    .select('*')
-    .eq('user_id', user?.id)
-    .order('created_at', { ascending: false })
+  const [{ data: assets }, { data: folders }, { data: categories }] = await Promise.all([
+    supabase.from('assets').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }),
+    supabase.from('folders').select('*').eq('user_id', user?.id).order('name'),
+    supabase.from('asset_categories').select('*').eq('user_id', user?.id).order('name'),
+  ])
 
   return (
     <div className="space-y-6">
@@ -24,7 +24,11 @@ export default async function AssetsPage() {
         <UploadDialog />
       </div>
 
-      <AssetGrid assets={assets || []} />
+      <AssetsPageClient
+        assets={assets || []}
+        folders={folders || []}
+        categories={categories || []}
+      />
     </div>
   )
 }
