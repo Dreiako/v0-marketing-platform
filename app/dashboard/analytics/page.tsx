@@ -95,6 +95,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
 
     return {
       id: link.id,
+      assetId: link.asset_id,
       title: link.assets.title,
       type: link.assets.type,
       slug: link.slug,

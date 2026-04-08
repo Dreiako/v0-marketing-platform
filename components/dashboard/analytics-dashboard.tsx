@@ -51,6 +51,7 @@ interface AnalyticsDashboardProps {
   }>
   linkPerformance: Array<{
     id: string
+    assetId: string
     title: string
     type: string
     slug: string
@@ -310,6 +311,7 @@ export function AnalyticsDashboard({
                   <TableHead className="text-right">Views</TableHead>
                   <TableHead className="text-right">Unique Visitors</TableHead>
                   <TableHead className="text-right">Avg. Time</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -329,6 +331,14 @@ export function AnalyticsDashboard({
                     <TableCell className="text-right font-medium">{link.views}</TableCell>
                     <TableCell className="text-right">{link.uniqueVisitors}</TableCell>
                     <TableCell className="text-right">{formatDuration(link.avgTimeSpent)}</TableCell>
+                    <TableCell className="text-right">
+                      <a
+                        href={`/dashboard/analytics/${link.assetId}`}
+                        className="text-xs text-primary underline underline-offset-2"
+                      >
+                        Deep dive →
+                      </a>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

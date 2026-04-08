@@ -84,7 +84,7 @@ export function PasswordGate({ shareLink }: PasswordGateProps) {
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value)
-                  setError(false)
+                  setErrorMsg(null)
                 }}
                 className={errorMsg ? 'border-destructive' : ''}
                 disabled={loading}

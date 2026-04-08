@@ -1,4 +1,5 @@
 export type AssetType = 'slide' | 'factsheet' | 'tutorial' | 'video' | 'image' | 'pdf'
+export type AssetCategory = 'deck' | 'video' | 'image' | 'document' | 'factsheet'
 
 export interface Asset {
   id: string
@@ -6,6 +7,7 @@ export interface Asset {
   title: string
   description: string | null
   type: AssetType
+  category: AssetCategory | null
   file_path: string
   file_size: number | null
   mime_type: string | null
@@ -22,6 +24,8 @@ export interface ShareLink {
   password_hash: string | null
   expires_at: string | null
   is_active: boolean
+  require_email: boolean
+  secret_key: string | null
   created_at: string
   asset?: Asset
 }
@@ -29,8 +33,9 @@ export interface ShareLink {
 export interface AnalyticsEvent {
   id: string
   share_link_id: string
-  event_type: 'view' | 'scroll' | 'time_spent' | 'exit' | 'download'
+  event_type: 'view' | 'scroll' | 'scroll_milestone' | 'time_spent' | 'exit' | 'download'
   visitor_id: string
+  viewer_email: string | null
   ip_address: string | null
   user_agent: string | null
   referrer: string | null

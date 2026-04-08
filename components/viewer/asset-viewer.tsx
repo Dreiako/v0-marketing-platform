@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Download, FileText, Maximize2, Minimize2 } from 'lucide-react'
+import { Download, FileText, Maximize2, Minimize2, BookOpen } from 'lucide-react'
 import type { ShareLink, Asset } from '@/lib/types'
 
 interface AssetViewerProps {
   shareLink: ShareLink
   asset: Asset
   signedUrl: string
+  viewerEmail?: string
 }
 
 function generateVisitorId(): string {
@@ -31,13 +32,28 @@ function getDeviceType(): string {
   return 'desktop'
 }
 
-export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
+export function AssetViewer({ shareLink, asset, signedUrl, viewerEmail }: AssetViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [scrollDepth, setScrollDepth] = useState(0)
+  const [showContinueBanner, setShowContinueBanner] = useState(false)
+  const [lastDepth, setLastDepth] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef<number>(Date.now())
   const hasTrackedViewRef = useRef(false)
   const supabase = createClient()
+
+  // Continue browsing: check localStorage for a previous incomplete session
+  useEffect(() => {
+    const key = `visible_progress_${shareLink.id}`
+    const saved = localStorage.getItem(key)
+    if (saved) {
+      const { depth } = JSON.parse(saved)
+      if (depth > 0 && depth < 90) {
+        setLastDepth(depth)
+        setShowContinueBanner(true)
+      }
+    }
+  }, [shareLink.id])
 
   // Track view on mount
   useEffect(() => {
@@ -60,11 +76,14 @@ export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
     trackView()
   }, [shareLink.id, supabase])
 
-  // Track scroll depth with PostHog-style milestones (25 / 50 / 75 / 100 %)
+  // Track scroll depth with PostHog-style milestones + save progress to localStorage
   useEffect(() => {
     const MILESTONES = [25, 50, 75, 100]
     const reached = new Set<number>()
-    const visitorId = generateVisitorId()
+    const visitorId = viewerEmail
+      ? `email_${viewerEmail.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+      : generateVisitorId()
+    const progressKey = `visible_progress_${shareLink.id}`
 
     const handleScroll = () => {
       if (!containerRef.current) return
@@ -73,6 +92,9 @@ export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
       const depth = scrollable > 0 ? Math.round((scrollTop / scrollable) * 100) : 100
       setScrollDepth((prev) => Math.max(prev, depth))
 
+      // Save progress
+      localStorage.setItem(progressKey, JSON.stringify({ depth }))
+
       MILESTONES.forEach(async (milestone) => {
         if (depth >= milestone && !reached.has(milestone)) {
           reached.add(milestone)
@@ -80,9 +102,12 @@ export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
             share_link_id: shareLink.id,
             event_type: 'scroll_milestone',
             visitor_id: visitorId,
+            viewer_email: viewerEmail ?? null,
             scroll_depth: milestone,
             device_type: getDeviceType(),
           })
+          // Clear progress once completed
+          if (milestone === 100) localStorage.removeItem(progressKey)
         }
       })
     }
@@ -91,7 +116,7 @@ export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
     container?.addEventListener('scroll', handleScroll, { passive: true })
     return () => container?.removeEventListener('scroll', handleScroll)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shareLink.id])
+  }, [shareLink.id, viewerEmail])
 
   // Track time spent and scroll depth on exit
   useEffect(() => {
@@ -234,6 +259,16 @@ export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
 
   return (
     <div className="flex h-screen flex-col bg-background">
+      {/* Continue browsing banner */}
+      {showContinueBanner && (
+        <div className="flex items-center justify-between gap-4 bg-primary px-4 py-2 text-sm text-primary-foreground">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 shrink-0" />
+            <span>You previously read {lastDepth}% of this document. Scroll to continue where you left off.</span>
+          </div>
+          <button onClick={() => setShowContinueBanner(false)} className="shrink-0 opacity-70 hover:opacity-100">✕</button>
+        </div>
+      )}
       {/* Header */}
       <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
         <div>

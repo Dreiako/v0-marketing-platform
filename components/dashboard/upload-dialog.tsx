@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Upload, X, FileText, Image, Video } from 'lucide-react'
-import type { AssetType } from '@/lib/types'
+import type { AssetType, AssetCategory } from '@/lib/types'
 
 const assetTypes: { value: AssetType; label: string; icon: typeof FileText }[] = [
   { value: 'slide', label: 'Slides / Presentation', icon: FileText },
@@ -39,6 +39,7 @@ export function UploadDialog() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [type, setType] = useState<AssetType>('pdf')
+  const [category, setCategory] = useState<AssetCategory>('document')
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
@@ -110,6 +111,7 @@ export function UploadDialog() {
         title,
         description: description || null,
         type,
+        category,
         file_path: filePath,
         file_size: file.size,
         mime_type: file.type,
@@ -166,6 +168,20 @@ export function UploadDialog() {
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Select value={category} onValueChange={(v) => setCategory(v as AssetCategory)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(['deck', 'video', 'image', 'document', 'factsheet'] as AssetCategory[]).map((c) => (
+                  <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
