@@ -31,7 +31,7 @@ export async function POST(
   }
 
   const { data: signedUrlData } = await supabase.storage
-    .from('assets')
+    .from('marketing-assets')
     .createSignedUrl(shareLink.assets.file_path, 3600)
 
   if (!signedUrlData?.signedUrl) {

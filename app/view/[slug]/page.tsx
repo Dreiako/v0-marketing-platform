@@ -47,7 +47,7 @@ export default async function ViewPage({ params }: ViewPageProps) {
 
   // Generate signed URL for the asset
   const { data: signedUrlData } = await supabase.storage
-    .from('assets')
+    .from('marketing-assets')
     .createSignedUrl(shareLink.assets.file_path, 3600) // 1 hour
 
   if (!signedUrlData?.signedUrl) {
