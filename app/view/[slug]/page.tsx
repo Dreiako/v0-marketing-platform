@@ -42,17 +42,12 @@ export default async function ViewPage({ params }: ViewPageProps) {
 
   // If password protected, show gate
   if (shareLink.password_hash) {
-    return (
-      <PasswordGate
-        shareLink={shareLink}
-        correctPassword={shareLink.password_hash}
-      />
-    )
+    return <PasswordGate shareLink={shareLink} />
   }
 
   // Generate signed URL for the asset
   const { data: signedUrlData } = await supabase.storage
-    .from('marketing-assets')
+    .from('assets')
     .createSignedUrl(shareLink.assets.file_path, 3600) // 1 hour
 
   if (!signedUrlData?.signedUrl) {

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Lock } from 'lucide-react'
+import { AssetViewer } from '@/components/viewer/asset-viewer'
 import type { ShareLink, Asset } from '@/lib/types'
 
 interface ShareLinkWithAsset extends ShareLink {
@@ -13,30 +14,51 @@ interface ShareLinkWithAsset extends ShareLink {
 
 interface PasswordGateProps {
   shareLink: ShareLinkWithAsset
-  correctPassword: string
 }
 
-export function PasswordGate({ shareLink, correctPassword }: PasswordGateProps) {
+export function PasswordGate({ shareLink }: PasswordGateProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
-  const [unlocked, setUnlocked] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [unlockedData, setUnlockedData] = useState<{
+    signedUrl: string
+    asset: Asset
+    shareLink: ShareLink
+  } | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === correctPassword) {
-      setUnlocked(true)
-      // Reload the page to get the asset viewer
-      window.location.reload()
-    } else {
+    setError(false)
+    setLoading(true)
+
+    try {
+      const res = await fetch(`/api/view/${shareLink.slug}/unlock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+
+      if (!res.ok) {
+        setError(true)
+        return
+      }
+
+      const data = await res.json()
+      setUnlockedData(data)
+    } catch {
       setError(true)
+    } finally {
+      setLoading(false)
     }
   }
 
-  if (unlocked) {
+  if (unlockedData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
+      <AssetViewer
+        shareLink={unlockedData.shareLink as ShareLink}
+        asset={unlockedData.asset}
+        signedUrl={unlockedData.signedUrl}
+      />
     )
   }
 
@@ -64,13 +86,14 @@ export function PasswordGate({ shareLink, correctPassword }: PasswordGateProps) 
                   setError(false)
                 }}
                 className={error ? 'border-destructive' : ''}
+                disabled={loading}
               />
               {error && (
                 <p className="text-sm text-destructive">Incorrect password</p>
               )}
             </div>
-            <Button type="submit" className="w-full">
-              Unlock
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Checking...' : 'Unlock'}
             </Button>
           </form>
         </CardContent>
