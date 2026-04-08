@@ -17,6 +17,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -40,8 +41,12 @@ import {
   Link2,
   Lock,
   Calendar,
+  Users,
+  KeyRound,
 } from 'lucide-react'
 import Link from 'next/link'
+import { PasswordDialog } from '@/components/dashboard/password-dialog'
+import { ViewersDialog } from '@/components/dashboard/viewers-dialog'
 
 interface ShareLinkWithAsset {
   id: string
@@ -63,6 +68,8 @@ interface LinksTableProps {
 
 export function LinksTable({ links }: LinksTableProps) {
   const [deleteLink, setDeleteLink] = useState<ShareLinkWithAsset | null>(null)
+  const [passwordLink, setPasswordLink] = useState<ShareLinkWithAsset | null>(null)
+  const [viewersLink, setViewersLink] = useState<ShareLinkWithAsset | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const router = useRouter()
@@ -78,16 +85,9 @@ export function LinksTable({ links }: LinksTableProps) {
   const handleDelete = async () => {
     if (!deleteLink) return
     setDeleting(true)
-
     try {
-      await supabase
-        .from('share_links')
-        .delete()
-        .eq('id', deleteLink.id)
-
+      await supabase.from('share_links').delete().eq('id', deleteLink.id)
       router.refresh()
-    } catch (error) {
-      console.error('Delete error:', error)
     } finally {
       setDeleting(false)
       setDeleteLink(null)
@@ -99,14 +99,11 @@ export function LinksTable({ links }: LinksTableProps) {
       .from('share_links')
       .update({ is_active: !link.is_active })
       .eq('id', link.id)
-
     router.refresh()
   }
 
-  const isExpired = (expiresAt: string | null) => {
-    if (!expiresAt) return false
-    return new Date(expiresAt) < new Date()
-  }
+  const isExpired = (expiresAt: string | null) =>
+    expiresAt ? new Date(expiresAt) < new Date() : false
 
   if (links.length === 0) {
     return (
@@ -142,20 +139,14 @@ export function LinksTable({ links }: LinksTableProps) {
           <TableBody>
             {links.map((link) => {
               const expired = isExpired(link.expires_at)
-              const status = !link.is_active
-                ? 'inactive'
-                : expired
-                ? 'expired'
-                : 'active'
+              const status = !link.is_active ? 'inactive' : expired ? 'expired' : 'active'
 
               return (
                 <TableRow key={link.id}>
                   <TableCell>
                     <div>
                       <p className="font-medium text-foreground">{link.assets.title}</p>
-                      <p className="text-sm capitalize text-muted-foreground">
-                        {link.assets.type}
-                      </p>
+                      <p className="text-sm capitalize text-muted-foreground">{link.assets.type}</p>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -193,17 +184,16 @@ export function LinksTable({ links }: LinksTableProps) {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {link.password_hash && (
-                        <div className="flex items-center gap-1 text-muted-foreground" title="Password protected">
-                          <Lock className="h-4 w-4" />
-                        </div>
+                        <Lock className="h-4 w-4 text-muted-foreground" aria-label="Password protected" />
                       )}
                       {link.expires_at && (
-                        <div className="flex items-center gap-1 text-muted-foreground" title={`Expires: ${new Date(link.expires_at).toLocaleDateString()}`}>
-                          <Calendar className="h-4 w-4" />
-                        </div>
+                        <Calendar
+                          className="h-4 w-4 text-muted-foreground"
+                          aria-label={`Expires: ${new Date(link.expires_at).toLocaleDateString()}`}
+                        />
                       )}
                       {!link.password_hash && !link.expires_at && (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </div>
                   </TableCell>
@@ -219,24 +209,30 @@ export function LinksTable({ links }: LinksTableProps) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <a
-                            href={`/view/${link.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
+                          <a href={`/view/${link.slug}`} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Open Link
                           </a>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setViewersLink(link)}>
+                          <Users className="mr-2 h-4 w-4" />
+                          View Viewers
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/dashboard/analytics?link=${link.id}`}>
                             <BarChart3 className="mr-2 h-4 w-4" />
-                            View Analytics
+                            Analytics
                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setPasswordLink(link)}>
+                          <KeyRound className="mr-2 h-4 w-4" />
+                          {link.password_hash ? 'Edit Password' : 'Set Password'}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleToggleActive(link)}>
                           {link.is_active ? 'Deactivate' : 'Activate'}
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => setDeleteLink(link)}
@@ -254,12 +250,30 @@ export function LinksTable({ links }: LinksTableProps) {
         </Table>
       </Card>
 
+      {passwordLink && (
+        <PasswordDialog
+          linkId={passwordLink.id}
+          currentPassword={passwordLink.password_hash}
+          open={!!passwordLink}
+          onClose={() => setPasswordLink(null)}
+        />
+      )}
+
+      {viewersLink && (
+        <ViewersDialog
+          linkId={viewersLink.id}
+          assetTitle={viewersLink.assets.title}
+          open={!!viewersLink}
+          onClose={() => setViewersLink(null)}
+        />
+      )}
+
       <AlertDialog open={!!deleteLink} onOpenChange={() => setDeleteLink(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Share Link</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this share link? This will also delete all associated analytics data.
+              This will permanently delete the link and all its analytics data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

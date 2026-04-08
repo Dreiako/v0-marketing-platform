@@ -60,19 +60,38 @@ export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
     trackView()
   }, [shareLink.id, supabase])
 
-  // Track scroll depth
+  // Track scroll depth with PostHog-style milestones (25 / 50 / 75 / 100 %)
   useEffect(() => {
+    const MILESTONES = [25, 50, 75, 100]
+    const reached = new Set<number>()
+    const visitorId = generateVisitorId()
+
     const handleScroll = () => {
       if (!containerRef.current) return
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current
-      const depth = Math.round((scrollTop / (scrollHeight - clientHeight)) * 100)
-      setScrollDepth(Math.max(scrollDepth, depth))
+      const scrollable = scrollHeight - clientHeight
+      const depth = scrollable > 0 ? Math.round((scrollTop / scrollable) * 100) : 100
+      setScrollDepth((prev) => Math.max(prev, depth))
+
+      MILESTONES.forEach(async (milestone) => {
+        if (depth >= milestone && !reached.has(milestone)) {
+          reached.add(milestone)
+          await supabase.from('analytics_events').insert({
+            share_link_id: shareLink.id,
+            event_type: 'scroll_milestone',
+            visitor_id: visitorId,
+            scroll_depth: milestone,
+            device_type: getDeviceType(),
+          })
+        }
+      })
     }
 
     const container = containerRef.current
-    container?.addEventListener('scroll', handleScroll)
+    container?.addEventListener('scroll', handleScroll, { passive: true })
     return () => container?.removeEventListener('scroll', handleScroll)
-  }, [scrollDepth])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareLink.id])
 
   // Track time spent and scroll depth on exit
   useEffect(() => {
@@ -248,7 +267,7 @@ export function AssetViewer({ shareLink, asset, signedUrl }: AssetViewerProps) {
 
       {/* Footer */}
       <footer className="border-t border-border bg-card px-4 py-2 text-center text-xs text-muted-foreground">
-        Powered by CollateralHub
+        Powered by Visible
       </footer>
     </div>
   )

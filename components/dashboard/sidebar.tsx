@@ -48,7 +48,7 @@ export function DashboardSidebar() {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
           <FolderOpen className="h-4 w-4 text-primary-foreground" />
         </div>
-        <span className="text-lg font-semibold">CollateralHub</span>
+        <span className="text-lg font-semibold">Visible</span>
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
@@ -73,7 +73,7 @@ export function DashboardSidebar() {
         })}
       </nav>
       <div className="border-t border-sidebar-border p-4">
-        <p className="text-xs text-sidebar-foreground/50">CollateralHub v1.0</p>
+        <p className="text-xs text-sidebar-foreground/50">Visible v1.0</p>
       </div>
     </aside>
   )

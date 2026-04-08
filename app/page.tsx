@@ -63,7 +63,7 @@ export default function LandingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <FolderOpen className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-foreground">CollateralHub</span>
+            <span className="text-lg font-semibold text-foreground">Visible</span>
           </div>
           <nav className="hidden items-center gap-6 md:flex">
             <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground">
@@ -94,7 +94,7 @@ export default function LandingPage() {
               <span className="text-primary">Track Engagement.</span>
             </h1>
             <p className="mt-6 text-pretty text-lg leading-relaxed text-muted-foreground">
-              CollateralHub helps product marketing managers upload, share, and track
+              Visible helps product marketing managers upload, share, and track
               engagement on slides, factsheets, tutorials, and other marketing materials.
               Know exactly how customers interact with your content.
             </p>
@@ -207,7 +207,7 @@ export default function LandingPage() {
               Ready to Share Smarter?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-primary-foreground/80">
-              Join thousands of marketing teams using CollateralHub to track content engagement.
+              Join thousands of marketing teams using Visible to track content engagement.
             </p>
             <div className="mt-8">
               <Button size="lg" variant="secondary" asChild>
@@ -229,7 +229,7 @@ export default function LandingPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <FolderOpen className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-foreground">CollateralHub</span>
+              <span className="font-semibold text-foreground">Visible</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Built for product marketing managers who want to track content engagement.
